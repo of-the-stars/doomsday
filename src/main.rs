@@ -1,8 +1,11 @@
-fn main() {
-    let year: u16 = 1978;
-    let result: u16 = (year / 100) % 4;
+use doomsday::*;
+use std::io::Error;
 
-    println!("On its own: \t\t {}", year);
-    println!("After dividing: \t {}", 2026 / 100);
-    println!("After modulo: \t\t {}", result);
+fn main() -> Result<(), Error> {
+    let number = 12;
+    let month = Month::get_month_from_number(number).ok_or(Error::last_os_error())?;
+
+    println!("{} is month number {}", month, number);
+
+    Ok(())
 }
