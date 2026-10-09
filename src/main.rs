@@ -1,11 +1,10 @@
-use doomsday::*;
-use std::io::Error;
+use doomsday::{DateStamp, Result};
 
-fn main() -> Result<(), Error> {
-    let number = 12;
-    let month = Month::get_month_from_number(number).ok_or(Error::last_os_error())?;
+fn main() -> Result<()> {
+    let day = DateStamp::try_from_input()?;
+    let day_of_the_week = day.get_day_of_the_week()?;
 
-    println!("{} is month number {}", month, number);
+    println!("{} is a {}", day, day_of_the_week);
 
     Ok(())
 }
