@@ -57,14 +57,14 @@ impl From<num::ParseIntError> for CalError {
 impl fmt::Display for CalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CalError::IntError(e) => write!(
-                f,
-                "An error was encountered while parsing an integer from a string: {}",
-                e
-            ),
             CalError::InvalidDate => {
                 write!(f, "The numbers given did not transform to a valid date")
             }
+            CalError::IntError(e) => write!(
+                f,
+                "An error was encountered while parsing an integer: {}",
+                e
+            ),
             CalError::IoError(e) => write!(
                 f,
                 "An error was encountered while performing an IO operation: {}",
@@ -186,21 +186,6 @@ impl DateStamp {
         })
     }
 
-    pub fn test() -> Result<Month> {
-        let mut month_buffer = String::new();
-        let mut month: Result<Month> = Err(CalError::InvalidDate);
-
-        while let Err(_) = month {
-            print!("Enter a month: ");
-            io::stdout().flush()?;
-            io::stdin().read_line(&mut month_buffer)?;
-            month = month_buffer.trim().parse::<Month>();
-            println!("{:?}", month);
-        }
-
-        month
-    }
-
     pub fn try_from_input() -> Result<DateStamp> {
         let mut day_buffer = String::new();
         let mut month_buffer = String::new();
@@ -215,16 +200,15 @@ impl DateStamp {
             io::stdout().flush()?;
             io::stdin().read_line(&mut day_buffer)?;
             day = day_buffer.trim().parse().map_err(|e| CalError::IntError(e));
+            day_buffer = "".to_string();
         }
 
         while let Err(_) = month {
             print!("Enter a month: ");
             io::stdout().flush()?;
             io::stdin().read_line(&mut month_buffer)?;
-            month = month_buffer
-                .trim()
-                .parse()
-                .map_err(|_| CalError::InvalidDate);
+            month = month_buffer.trim().parse();
+            month_buffer = "".to_string();
         }
 
         while let Err(_) = year {
@@ -235,6 +219,7 @@ impl DateStamp {
                 .trim()
                 .parse()
                 .map_err(|e| CalError::IntError(e));
+            year_buffer = "".to_string();
         }
 
         let day = day?;
@@ -261,7 +246,7 @@ struct DayOfTheYear {
 
 impl DayOfTheYear {
     fn try_from_tuple((day, month, year): (u8, u8, u16)) -> Result<DayOfTheYear> {
-        let month = Month::try_month_from_number(month)?;
+        let month = Month::try_from_number(month)?;
         let days_in_month = month.max_days_in_month(is_divisible_by_four(&year));
 
         if (1..=days_in_month).contains(&day) {
@@ -463,8 +448,7 @@ impl Month {
         }
     }
 
-    fn try_month_from_number(number: u8) -> Result<Month> {
-        println!("From number:");
+    fn try_from_number(number: u8) -> Result<Month> {
         match number {
             01 => Ok(Month::Jan),
             02 => Ok(Month::Feb),
@@ -478,10 +462,59 @@ impl Month {
             10 => Ok(Month::Oct),
             11 => Ok(Month::Nov),
             12 => Ok(Month::Dec),
-            _ => {
-                println!("Error from number:");
-                Err(CalError::InvalidDate)
-            }
+            _ => Err(CalError::InvalidDate),
+        }
+    }
+
+    fn try_from_str(s: &str) -> Result<Month> {
+        match s {
+            "Jan" => Ok(Month::Jan),
+            "January" => Ok(Month::Jan),
+            "Feb" => Ok(Month::Feb),
+            "February" => Ok(Month::Feb),
+            "Mar" => Ok(Month::Mar),
+            "March" => Ok(Month::Mar),
+            "Apr" => Ok(Month::Apr),
+            "April" => Ok(Month::Apr),
+            "May" => Ok(Month::May),
+            "Jun" => Ok(Month::Jun),
+            "June" => Ok(Month::Jun),
+            "Jul" => Ok(Month::Jul),
+            "July" => Ok(Month::Jul),
+            "Aug" => Ok(Month::Aug),
+            "August" => Ok(Month::Aug),
+            "Sep" => Ok(Month::Sep),
+            "September" => Ok(Month::Sep),
+            "Oct" => Ok(Month::Oct),
+            "October" => Ok(Month::Oct),
+            "Nov" => Ok(Month::Nov),
+            "November" => Ok(Month::Nov),
+            "Dec" => Ok(Month::Dec),
+            "December" => Ok(Month::Dec),
+            "jan" => Ok(Month::Jan),
+            "january" => Ok(Month::Jan),
+            "feb" => Ok(Month::Feb),
+            "february" => Ok(Month::Feb),
+            "mar" => Ok(Month::Mar),
+            "march" => Ok(Month::Mar),
+            "apr" => Ok(Month::Apr),
+            "april" => Ok(Month::Apr),
+            "may" => Ok(Month::May),
+            "jun" => Ok(Month::Jun),
+            "june" => Ok(Month::Jun),
+            "jul" => Ok(Month::Jul),
+            "july" => Ok(Month::Jul),
+            "aug" => Ok(Month::Aug),
+            "august" => Ok(Month::Aug),
+            "sep" => Ok(Month::Sep),
+            "september" => Ok(Month::Sep),
+            "oct" => Ok(Month::Oct),
+            "october" => Ok(Month::Oct),
+            "nov" => Ok(Month::Nov),
+            "november" => Ok(Month::Nov),
+            "dec" => Ok(Month::Dec),
+            "december" => Ok(Month::Dec),
+            _ => Err(CalError::InvalidDate),
         }
     }
 }
@@ -490,114 +523,11 @@ impl str::FromStr for Month {
     type Err = CalError;
 
     fn from_str(s: &str) -> std::prelude::v1::Result<Self, Self::Err> {
-        const MONTHS: [&str; 46] = [
-            "Jan",
-            "January",
-            "Feb",
-            "February",
-            "Mar",
-            "March",
-            "Apr",
-            "April",
-            "May",
-            "Jun",
-            "June",
-            "Jul",
-            "July",
-            "Aug",
-            "August",
-            "Sep",
-            "September",
-            "Oct",
-            "October",
-            "Nov",
-            "November",
-            "Dec",
-            "December",
-            "jan",
-            "january",
-            "feb",
-            "february",
-            "mar",
-            "march",
-            "apr",
-            "april",
-            "may",
-            "jun",
-            "june",
-            "jul",
-            "july",
-            "aug",
-            "august",
-            "sep",
-            "september",
-            "oct",
-            "october",
-            "nov",
-            "november",
-            "dec",
-            "december",
-        ];
-
         let s = s.trim();
 
-        let from_str = if MONTHS.contains(&s) {
-            match s {
-                "Jan" => Ok(Month::Jan),
-                "January" => Ok(Month::Jan),
-                "Feb" => Ok(Month::Feb),
-                "February" => Ok(Month::Feb),
-                "Mar" => Ok(Month::Mar),
-                "March" => Ok(Month::Mar),
-                "Apr" => Ok(Month::Apr),
-                "April" => Ok(Month::Apr),
-                "May" => Ok(Month::May),
-                "Jun" => Ok(Month::Jun),
-                "June" => Ok(Month::Jun),
-                "Jul" => Ok(Month::Jul),
-                "July" => Ok(Month::Jul),
-                "Aug" => Ok(Month::Aug),
-                "August" => Ok(Month::Aug),
-                "Sep" => Ok(Month::Sep),
-                "September" => Ok(Month::Sep),
-                "Oct" => Ok(Month::Oct),
-                "October" => Ok(Month::Oct),
-                "Nov" => Ok(Month::Nov),
-                "November" => Ok(Month::Nov),
-                "Dec" => Ok(Month::Dec),
-                "December" => Ok(Month::Dec),
-                "jan" => Ok(Month::Jan),
-                "january" => Ok(Month::Jan),
-                "feb" => Ok(Month::Feb),
-                "february" => Ok(Month::Feb),
-                "mar" => Ok(Month::Mar),
-                "march" => Ok(Month::Mar),
-                "apr" => Ok(Month::Apr),
-                "april" => Ok(Month::Apr),
-                "may" => Ok(Month::May),
-                "jun" => Ok(Month::Jun),
-                "june" => Ok(Month::Jun),
-                "jul" => Ok(Month::Jul),
-                "july" => Ok(Month::Jul),
-                "aug" => Ok(Month::Aug),
-                "august" => Ok(Month::Aug),
-                "sep" => Ok(Month::Sep),
-                "september" => Ok(Month::Sep),
-                "oct" => Ok(Month::Oct),
-                "october" => Ok(Month::Oct),
-                "nov" => Ok(Month::Nov),
-                "november" => Ok(Month::Nov),
-                "dec" => Ok(Month::Dec),
-                "december" => Ok(Month::Dec),
-                _ => Err(CalError::InvalidDate),
-            }
-        } else {
-            Err(CalError::InvalidDate)
-        };
-
-        match from_str {
+        match Month::try_from_str(s) {
             Ok(month) => Ok(month),
-            Err(_) => match Month::try_month_from_number(s.parse::<u8>()?) {
+            Err(_) => match Month::try_from_number(s.parse::<u8>()?) {
                 Ok(month) => Ok(month),
                 Err(err) => Err(err),
             },
@@ -608,18 +538,18 @@ impl str::FromStr for Month {
 impl fmt::Display for Month {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Month::Jan => write!(f, "Jan"),
-            Month::Feb => write!(f, "Feb"),
-            Month::Mar => write!(f, "Mar"),
-            Month::Apr => write!(f, "Apr"),
+            Month::Jan => write!(f, "January"),
+            Month::Feb => write!(f, "February"),
+            Month::Mar => write!(f, "March"),
+            Month::Apr => write!(f, "April"),
             Month::May => write!(f, "May"),
-            Month::Jun => write!(f, "Jun"),
-            Month::Jul => write!(f, "Jul"),
-            Month::Aug => write!(f, "Aug"),
-            Month::Sep => write!(f, "Sep"),
-            Month::Oct => write!(f, "Oct"),
-            Month::Nov => write!(f, "Nov"),
-            Month::Dec => write!(f, "Dec"),
+            Month::Jun => write!(f, "June"),
+            Month::Jul => write!(f, "July"),
+            Month::Aug => write!(f, "August"),
+            Month::Sep => write!(f, "September"),
+            Month::Oct => write!(f, "October"),
+            Month::Nov => write!(f, "November"),
+            Month::Dec => write!(f, "December"),
         }
     }
 }
