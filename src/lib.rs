@@ -541,7 +541,7 @@ impl str::FromStr for Month {
 
         let s = s.trim();
 
-        if MONTHS.contains(&s) {
+        let from_str = if MONTHS.contains(&s) {
             match s {
                 "Jan" => Ok(Month::Jan),
                 "January" => Ok(Month::Jan),
@@ -592,10 +592,15 @@ impl str::FromStr for Month {
                 _ => Err(CalError::InvalidDate),
             }
         } else {
-            match Month::try_month_from_number(s.parse::<u8>()?) {
+            Err(CalError::InvalidDate)
+        };
+
+        match from_str {
+            Ok(month) => Ok(month),
+            Err(_) => match Month::try_month_from_number(s.parse::<u8>()?) {
                 Ok(month) => Ok(month),
                 Err(err) => Err(err),
-            }
+            },
         }
     }
 }
