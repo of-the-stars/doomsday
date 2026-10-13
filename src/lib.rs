@@ -200,7 +200,7 @@ impl DateStamp {
             io::stdout().flush()?;
             io::stdin().read_line(&mut day_buffer)?;
             day = day_buffer.trim().parse().map_err(|e| CalError::IntError(e));
-            day_buffer = "".to_string();
+            day_buffer.clear();
         }
 
         while let Err(_) = month {
@@ -208,7 +208,7 @@ impl DateStamp {
             io::stdout().flush()?;
             io::stdin().read_line(&mut month_buffer)?;
             month = month_buffer.trim().parse();
-            month_buffer = "".to_string();
+            month_buffer.clear();
         }
 
         while let Err(_) = year {
@@ -219,7 +219,7 @@ impl DateStamp {
                 .trim()
                 .parse()
                 .map_err(|e| CalError::IntError(e));
-            year_buffer = "".to_string();
+            year_buffer.clear();
         }
 
         let day = day?;
