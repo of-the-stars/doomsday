@@ -36,7 +36,7 @@ pub fn conway_login_game() -> Result<()> {
 
     let date = date?;
 
-    println!("What day of the week was {}?", date);
+    println!("What day of the week is {}?", date);
 
     let day_of_the_week = date.get_day_of_the_week()?;
 
