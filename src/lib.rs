@@ -28,7 +28,7 @@ pub fn conway_login_game() -> Result<()> {
         let mut rng = rand::rng();
         let day = rng.random_range(1..=31);
         let month = rng.random_range(1..=12);
-        let year = rng.random_range(1000..=3000);
+        let year = rng.random_range(1583..=3000);
 
         let tuple = (day, month, year);
         date = DateStamp::try_from_tuple(tuple);
