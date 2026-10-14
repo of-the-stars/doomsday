@@ -28,9 +28,10 @@ pub fn conway_login_game() -> Result<()> {
         let mut rng = rand::rng();
         let day = rng.random_range(1..=31);
         let month = rng.random_range(1..=12);
-        let year = rng.random_range(1583..=3000);
+        let year = rng.random_range(1000..=3000);
 
-        date = DateStamp::try_from_tuple((day, month, year));
+        let tuple = (day, month, year);
+        date = DateStamp::try_from_tuple(tuple);
     }
 
     let date = date?;
@@ -62,12 +63,11 @@ pub fn conway_login_game() -> Result<()> {
         }
     }
 
-    println!("{} is a {}", date, day_of_the_week);
-
     let end = time::Instant::now();
 
-    let guess_time = GuessTime(end - start);
+    println!("{} is a {}", date, day_of_the_week);
 
+    let guess_time = GuessTime(end - start);
     println!("That took you {}", guess_time);
 
     Ok(())
@@ -98,9 +98,9 @@ pub enum CalError {
     IntError(num::ParseIntError),
     /// If a module operation on unsigned bound integers miraculously failed
     Modulo,
-    /// If a value guaranteed to be in (1..=31) were miraculously not to be in that range
+    /// If a value guaranteed to be in `(1..=31)` were miraculously not to be in that range
     SignConversion,
-    /// If a value guaranteed to be less than 100 were to miraculously not fit in a u8
+    /// If a value guaranteed to be less than 100 were to miraculously not fit in a [`u8`]
     SizeConversion,
 }
 
@@ -155,6 +155,8 @@ impl fmt::Display for CalError {
     }
 }
 
+/// Checks if the given year is a leap year. In the Gregorian calendar, leap years are years that are divisible by four and not
+/// divisible by one hundred unless they're also divisible by four hundred
 fn is_leap_year(year: &u16) -> bool {
     let divisible_by_four: bool = year % 4 == 0;
     let divisible_by_one_hundred: bool = year % 100 == 0;
