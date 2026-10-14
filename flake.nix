@@ -80,12 +80,6 @@
             # Inherits buildInputs from package
             inputsFrom = [ package ];
 
-            # Additional packages for the dev environment
-            packages = with pkgs; [
-            ];
-
-            shellHook = "";
-
             env = {
               # Needed for rust-analyzer
               RUST_SRC_PATH = "${rust-toolchain}/lib/rustlib/src/rust/library";

@@ -1,8 +1,77 @@
+use rand::prelude::*;
 use std::{
     fmt,
     io::{self, prelude::*},
-    num, process, str,
+    num, process, str, time,
 };
+
+struct GuessTime(time::Duration);
+
+impl fmt::Display for GuessTime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}s {}ms", self.0.as_secs(), self.0.subsec_millis())
+    }
+}
+
+// pub fn pause() -> Result<()> {
+//     let mut stdout = io::stdout();
+//     stdout.write(b"")?;
+//     stdout.flush()?;
+//     io::stdin().read(&mut [0])?;
+//     Ok(())
+// }
+
+pub fn conway_login_game() -> Result<()> {
+    let mut date: Result<DateStamp> = Err(CalError::InvalidDate);
+
+    while let Err(_) = date {
+        let mut rng = rand::rng();
+        let day = rng.random_range(1..=31);
+        let month = rng.random_range(1..=12);
+        let year = rng.random_range(1583..=3000);
+
+        date = DateStamp::try_from_tuple((day, month, year));
+    }
+
+    let date = date?;
+
+    println!("What day of the week was {}?", date);
+
+    let day_of_the_week = date.get_day_of_the_week()?;
+
+    let mut guess_buffer = String::new();
+    let mut guess: Result<DayOfTheWeek>;
+
+    let start = time::Instant::now();
+
+    loop {
+        print!("Guess: ");
+        io::stdout().flush()?;
+        io::stdin().read_line(&mut guess_buffer)?;
+        guess = guess_buffer.trim().parse();
+        guess_buffer.clear();
+
+        match guess {
+            Ok(day) => {
+                if day_of_the_week == day {
+                    println!("That's correct!!");
+                    break;
+                }
+            }
+            Err(e) => println!("{}", e),
+        }
+    }
+
+    println!("{} is a {}", date, day_of_the_week);
+
+    let end = time::Instant::now();
+
+    let guess_time = GuessTime(end - start);
+
+    println!("That took you {}", guess_time);
+
+    Ok(())
+}
 
 /// A `Result` type alias, returning [`CalError`] variants based off of the errors that may occur
 pub type Result<T> = std::result::Result<T, CalError>;
@@ -86,13 +155,17 @@ impl fmt::Display for CalError {
     }
 }
 
-fn is_divisible_by_four(year: &u16) -> bool {
-    if year % 4 == 0 { true } else { false }
+fn is_leap_year(year: &u16) -> bool {
+    let divisible_by_four: bool = year % 4 == 0;
+    let divisible_by_one_hundred: bool = year % 100 == 0;
+    let divisible_by_four_hundred: bool = year % 400 == 0;
+
+    divisible_by_four && (!divisible_by_one_hundred || divisible_by_four_hundred)
 }
 
 /// Represents a date from the Gregorian calendar.
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
-pub struct DateStamp {
+struct DateStamp {
     /// The year
     year: u16,
     /// A combination of the month and day
@@ -116,11 +189,15 @@ impl DateStamp {
     /// Gets the doomsday code for the date stamp's year
     fn get_doomsday_code_for_year(&self) -> Result<u8> {
         let century_code = self.get_doomsday_code_for_century()?;
-        let leftover = self.year - ((self.year / 100) * 100);
+        let century = (self.year / 100) * 100;
+
+        let leftover = self.year - century;
         let leftover: u8 = leftover.try_into().or(Err(CalError::SizeConversion))?;
+
         let a = leftover / 12;
         let b = leftover - (12 * a);
         let c = b / 4;
+
         let end_result = (century_code + a + b + c) % 7;
 
         Ok(end_result)
@@ -128,16 +205,20 @@ impl DateStamp {
 
     /// Gets the doomsday code for the date stamp's day
     fn get_doomsday_code_for_day(&self) -> Result<u8> {
-        let doomsday_code: i16 = self
-            .get_doomsday_code_for_year()?
-            .try_into()
-            .or(Err(CalError::SignConversion))?;
+        let doomsday_code: i16 = self.get_doomsday_code_for_year()?.into();
 
         let diff = self
             .day_of_the_year
             .get_difference_from_doomsday(&self.year);
 
-        let code: u8 = (doomsday_code + diff)
+        let mut code = doomsday_code + diff;
+
+        while code < 0 {
+            code += 7;
+        }
+
+        let code: u8 = code
+            .rem_euclid(7)
             .try_into()
             .or(Err(CalError::SignConversion))?;
 
@@ -145,10 +226,10 @@ impl DateStamp {
     }
 
     /// Returns the day of the week the date stamp falls on
-    pub fn get_day_of_the_week(&self) -> Result<DayOfTheWeek> {
+    fn get_day_of_the_week(&self) -> Result<DayOfTheWeek> {
         let code = self.get_doomsday_code_for_day()?;
 
-        DayOfTheWeek::get_day_from_code(code)
+        DayOfTheWeek::try_from_code(code)
     }
 
     /// Creates a [`DateStamp`] from a day, month, year [`(u8, u8, 16)`] tuple.
@@ -168,7 +249,7 @@ impl DateStamp {
     ///
     /// assert!(date_stamp == tuple);
     /// ```
-    pub fn try_from_tuple((day, month, year): (u8, u8, u16)) -> Result<DateStamp> {
+    fn try_from_tuple((day, month, year): (u8, u8, u16)) -> Result<DateStamp> {
         let day_of_the_year = DayOfTheYear::try_from_tuple((day, month, year))?;
 
         Ok(DateStamp {
@@ -177,59 +258,59 @@ impl DateStamp {
         })
     }
 
-    pub fn try_from_day_month_year(day: u8, month: Month, year: u16) -> Result<DateStamp> {
-        let day_of_the_year = DayOfTheYear::try_from_day_month_year(day, month, year)?;
+    // fn try_from_day_month_year(day: u8, month: Month, year: u16) -> Result<DateStamp> {
+    //     let day_of_the_year = DayOfTheYear::try_from_day_month_year(day, month, year)?;
+    //
+    //     Ok(DateStamp {
+    //         day_of_the_year,
+    //         year,
+    //     })
+    // }
 
-        Ok(DateStamp {
-            day_of_the_year,
-            year,
-        })
-    }
-
-    pub fn try_from_input() -> Result<DateStamp> {
-        let mut day_buffer = String::new();
-        let mut month_buffer = String::new();
-        let mut year_buffer = String::new();
-
-        let mut day: Result<u8> = Err(CalError::InvalidDate);
-        let mut month: Result<Month> = Err(CalError::InvalidDate);
-        let mut year: Result<u16> = Err(CalError::InvalidDate);
-
-        while let Err(_) = day {
-            print!("Enter a day: ");
-            io::stdout().flush()?;
-            io::stdin().read_line(&mut day_buffer)?;
-            day = day_buffer.trim().parse().map_err(|e| CalError::IntError(e));
-            day_buffer.clear();
-        }
-
-        while let Err(_) = month {
-            print!("Enter a month: ");
-            io::stdout().flush()?;
-            io::stdin().read_line(&mut month_buffer)?;
-            month = month_buffer.trim().parse();
-            month_buffer.clear();
-        }
-
-        while let Err(_) = year {
-            print!("Enter a year: ");
-            io::stdout().flush()?;
-            io::stdin().read_line(&mut year_buffer)?;
-            year = year_buffer
-                .trim()
-                .parse()
-                .map_err(|e| CalError::IntError(e));
-            year_buffer.clear();
-        }
-
-        let day = day?;
-        let month = month?;
-        let year = year?;
-
-        let date_stamp = DateStamp::try_from_day_month_year(day, month, year)?;
-
-        Ok(date_stamp)
-    }
+    // fn try_from_input() -> Result<DateStamp> {
+    //     let mut day_buffer = String::new();
+    //     let mut month_buffer = String::new();
+    //     let mut year_buffer = String::new();
+    //
+    //     let mut day: Result<u8> = Err(CalError::InvalidDate);
+    //     let mut month: Result<Month> = Err(CalError::InvalidDate);
+    //     let mut year: Result<u16> = Err(CalError::InvalidDate);
+    //
+    //     while let Err(_) = day {
+    //         print!("Enter a day: ");
+    //         io::stdout().flush()?;
+    //         io::stdin().read_line(&mut day_buffer)?;
+    //         day = day_buffer.trim().parse().map_err(|e| CalError::IntError(e));
+    //         day_buffer.clear();
+    //     }
+    //
+    //     while let Err(_) = month {
+    //         print!("Enter a month: ");
+    //         io::stdout().flush()?;
+    //         io::stdin().read_line(&mut month_buffer)?;
+    //         month = month_buffer.trim().parse();
+    //         month_buffer.clear();
+    //     }
+    //
+    //     while let Err(_) = year {
+    //         print!("Enter a year: ");
+    //         io::stdout().flush()?;
+    //         io::stdin().read_line(&mut year_buffer)?;
+    //         year = year_buffer
+    //             .trim()
+    //             .parse()
+    //             .map_err(|e| CalError::IntError(e));
+    //         year_buffer.clear();
+    //     }
+    //
+    //     let day = day?;
+    //     let month = month?;
+    //     let year = year?;
+    //
+    //     let date_stamp = DateStamp::try_from_day_month_year(day, month, year)?;
+    //
+    //     Ok(date_stamp)
+    // }
 }
 
 impl fmt::Display for DateStamp {
@@ -247,7 +328,7 @@ struct DayOfTheYear {
 impl DayOfTheYear {
     fn try_from_tuple((day, month, year): (u8, u8, u16)) -> Result<DayOfTheYear> {
         let month = Month::try_from_number(month)?;
-        let days_in_month = month.max_days_in_month(is_divisible_by_four(&year));
+        let days_in_month = month.max_days_in_month(is_leap_year(&year));
 
         if (1..=days_in_month).contains(&day) {
             Ok(DayOfTheYear { month, day })
@@ -256,27 +337,28 @@ impl DayOfTheYear {
         }
     }
 
-    pub fn try_from_day_month_year(day: u8, month: Month, year: u16) -> Result<DayOfTheYear> {
-        let days_in_month = month.max_days_in_month(is_divisible_by_four(&year));
-
-        if (1..=days_in_month).contains(&day) {
-            Ok(DayOfTheYear { month, day })
-        } else {
-            Err(CalError::InvalidDate)
-        }
-    }
+    // fn try_from_day_month_year(day: u8, month: Month, year: u16) -> Result<DayOfTheYear> {
+    //     let days_in_month = month.max_days_in_month(is_leap_year(&year));
+    //
+    //     if (1..=days_in_month).contains(&day) {
+    //         Ok(DayOfTheYear { month, day })
+    //     } else {
+    //         Err(CalError::InvalidDate)
+    //     }
+    // }
 
     fn get_difference_from_doomsday(&self, year: &u16) -> i16 {
         let closest_doomsday: i16 = self.get_months_doomsday(year).day.into();
+
         let day: i16 = self.day.into();
 
         day - closest_doomsday
     }
 
     fn get_months_doomsday(&self, year: &u16) -> DayOfTheYear {
-        let is_leap_year = is_divisible_by_four(year);
+        let is_leap_year = is_leap_year(year);
 
-        match self.month {
+        let doomsday = match self.month {
             Month::Jan => {
                 if is_leap_year {
                     DayOfTheYear {
@@ -343,7 +425,9 @@ impl DayOfTheYear {
                 month: Month::Dec,
                 day: 12,
             },
-        }
+        };
+
+        doomsday
     }
 }
 
@@ -355,7 +439,7 @@ impl fmt::Display for DayOfTheYear {
 
 /// Represents each day of the week
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
-pub enum DayOfTheWeek {
+enum DayOfTheWeek {
     Sunday,
     Monday,
     Tuesday,
@@ -379,7 +463,7 @@ impl DayOfTheWeek {
         }
     }
 
-    fn get_day_from_code(code: u8) -> Result<Self> {
+    fn try_from_code(code: u8) -> Result<Self> {
         match code % 7 {
             0 => Ok(DayOfTheWeek::Sunday),
             1 => Ok(DayOfTheWeek::Monday),
@@ -389,6 +473,56 @@ impl DayOfTheWeek {
             5 => Ok(DayOfTheWeek::Friday),
             6 => Ok(DayOfTheWeek::Saturday),
             _ => Err(CalError::Modulo),
+        }
+    }
+
+    fn try_from_str(s: &str) -> Result<Self> {
+        match s {
+            "Sunday" => Ok(DayOfTheWeek::Sunday),
+            "Monday" => Ok(DayOfTheWeek::Monday),
+            "Tuesday" => Ok(DayOfTheWeek::Tuesday),
+            "Wednesday" => Ok(DayOfTheWeek::Wednesday),
+            "Thursday" => Ok(DayOfTheWeek::Thursday),
+            "Friday" => Ok(DayOfTheWeek::Friday),
+            "Saturday" => Ok(DayOfTheWeek::Saturday),
+            "Sun" => Ok(DayOfTheWeek::Sunday),
+            "Mon" => Ok(DayOfTheWeek::Monday),
+            "Tue" => Ok(DayOfTheWeek::Tuesday),
+            "Wed" => Ok(DayOfTheWeek::Wednesday),
+            "Thu" => Ok(DayOfTheWeek::Thursday),
+            "Fri" => Ok(DayOfTheWeek::Friday),
+            "Sat" => Ok(DayOfTheWeek::Saturday),
+            "sunday" => Ok(DayOfTheWeek::Sunday),
+            "monday" => Ok(DayOfTheWeek::Monday),
+            "tuesday" => Ok(DayOfTheWeek::Tuesday),
+            "wednesday" => Ok(DayOfTheWeek::Wednesday),
+            "thursday" => Ok(DayOfTheWeek::Thursday),
+            "friday" => Ok(DayOfTheWeek::Friday),
+            "saturday" => Ok(DayOfTheWeek::Saturday),
+            "sun" => Ok(DayOfTheWeek::Sunday),
+            "mon" => Ok(DayOfTheWeek::Monday),
+            "tue" => Ok(DayOfTheWeek::Tuesday),
+            "wed" => Ok(DayOfTheWeek::Wednesday),
+            "thu" => Ok(DayOfTheWeek::Thursday),
+            "fri" => Ok(DayOfTheWeek::Friday),
+            "sat" => Ok(DayOfTheWeek::Saturday),
+            _ => Err(CalError::InvalidDate),
+        }
+    }
+}
+
+impl str::FromStr for DayOfTheWeek {
+    type Err = CalError;
+
+    fn from_str(s: &str) -> std::prelude::v1::Result<Self, Self::Err> {
+        let s = s.trim();
+
+        match DayOfTheWeek::try_from_str(s) {
+            Ok(day) => Ok(day),
+            Err(_) => match DayOfTheWeek::try_from_code(s.parse::<u8>()?) {
+                Ok(day) => Ok(day),
+                Err(err) => Err(err),
+            },
         }
     }
 }
@@ -409,7 +543,7 @@ impl fmt::Display for DayOfTheWeek {
 
 /// Represents each month of the year
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
-pub enum Month {
+enum Month {
     Jan,
     Feb,
     Mar,
