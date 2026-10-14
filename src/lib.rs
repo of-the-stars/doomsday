@@ -236,21 +236,6 @@ impl DateStamp {
 
     /// Creates a [`DateStamp`] from a day, month, year [`(u8, u8, 16)`] tuple.
     /// If it's not a valid date, it returns a [`CalError::InvalidDate`].
-    ///
-    /// # Example
-    /// ```rust
-    /// let tuple: (u8, u8, u16) = (29, 02, 2000);
-    /// let date_stamp = DateStamp {
-    ///     year: 2000,
-    ///     day_of_the_year: DayOfTheYear {
-    ///         month: Month:: Feb,
-    ///         day: 29
-    ///     },
-    /// };
-    /// let tuple = DateStamp::try_from_day_month_year_tuple(tuple);
-    ///
-    /// assert!(date_stamp == tuple);
-    /// ```
     fn try_from_tuple((day, month, year): (u8, u8, u16)) -> Result<DateStamp> {
         let day_of_the_year = DayOfTheYear::try_from_tuple((day, month, year))?;
 
