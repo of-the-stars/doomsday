@@ -51,7 +51,7 @@ fn guess_doomsday() -> Result<()> {
 
     let date = date?;
 
-    println!("What day of the week is {}?", date);
+    println!("What day of the week is {}?\n", date);
 
     let day_of_the_week = date.get_day_of_the_week()?;
 
@@ -70,7 +70,7 @@ fn guess_doomsday() -> Result<()> {
         match guess {
             Ok(day) => {
                 if day_of_the_week == day {
-                    println!("That's correct!!");
+                    println!("That's correct!!\n");
                     break;
                 }
             }
@@ -83,7 +83,7 @@ fn guess_doomsday() -> Result<()> {
     println!("{} is a {}", date, day_of_the_week);
 
     let guess_time = GuessTime(end - start);
-    println!("That took you {}", guess_time);
+    println!("That took you {}\n", guess_time);
 
     Ok(())
 }
