@@ -13,23 +13,16 @@ impl fmt::Display for GuessTime {
     }
 }
 
-// pub fn pause() -> Result<()> {
-//     let mut stdout = io::stdout();
-//     stdout.write(b"")?;
-//     stdout.flush()?;
-//     io::stdin().read(&mut [0])?;
-//     Ok(())
-// }
-
-// TODO: Add logic to parse the limit
 pub fn conway_login_game(limit: Option<u8>) -> Result<()> {
     if let Some(counter) = limit {
         for _ in 1..=counter {
             guess_doomsday()?;
+            println!("");
         }
     } else {
         loop {
             guess_doomsday()?;
+            println!("");
         }
     }
 
@@ -70,7 +63,7 @@ fn guess_doomsday() -> Result<()> {
         match guess {
             Ok(day) => {
                 if day_of_the_week == day {
-                    println!("That's correct!!\n");
+                    println!("\nThat's correct!!\n");
                     break;
                 }
             }
@@ -83,7 +76,7 @@ fn guess_doomsday() -> Result<()> {
     println!("{} is a {}", date, day_of_the_week);
 
     let guess_time = GuessTime(end - start);
-    println!("That took you {}\n", guess_time);
+    println!("That took you {}", guess_time);
 
     Ok(())
 }
