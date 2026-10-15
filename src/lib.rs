@@ -21,7 +21,22 @@ impl fmt::Display for GuessTime {
 //     Ok(())
 // }
 
-pub fn conway_login_game() -> Result<()> {
+// TODO: Add logic to parse the limit
+pub fn conway_login_game(limit: Option<u8>) -> Result<()> {
+    if let Some(counter) = limit {
+        for _ in 1..=counter {
+            guess_doomsday()?;
+        }
+    } else {
+        loop {
+            guess_doomsday()?;
+        }
+    }
+
+    Ok(())
+}
+
+fn guess_doomsday() -> Result<()> {
     let mut date: Result<DateStamp> = Err(CalError::InvalidDate);
 
     while let Err(_) = date {
