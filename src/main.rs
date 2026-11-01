@@ -1,15 +1,11 @@
-use doomsday::{self, Result};
 use std::env;
 
-fn main() -> Result<()> {
+fn main() -> doomsday::Result<()> {
     let args: Vec<String> = env::args().collect();
 
-    let limit: Option<u8> = if let Some(number_str) = args.get(1) {
-        Some(number_str.trim().parse()?)
-    } else {
-        None
-    };
+    let config = doomsday::GameConfig::new(&args)?;
 
-    doomsday::conway_login_game(limit)?;
+    doomsday::conway_login_game(config)?;
+
     Ok(())
 }
