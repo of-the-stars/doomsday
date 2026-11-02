@@ -59,26 +59,25 @@ impl GameConfig {
             .filter_map(|s| s.as_str().try_into().ok())
             .collect();
 
-        let length = args.len();
+        let next_item = |index| {
+            if let Some(CliOption::UIntValue(value)) = args.get(index + 1) {
+                Some(value)
+            } else {
+                None
+            }
+        };
 
         for (i, item) in args.iter().enumerate() {
+            let next_value = next_item(i);
+
             match item {
-                CliOption::LowerYearLimit
-                    if i + 1 < length
-                        && let Some(CliOption::UIntValue(value)) = args.get(i + 1) =>
-                {
+                CliOption::LowerYearLimit if let Some(value) = next_value => {
                     config.lower_year_limit = *value;
                 }
-                CliOption::UpperYearLimit
-                    if i + 1 < length
-                        && let Some(CliOption::UIntValue(value)) = args.get(i + 1) =>
-                {
+                CliOption::UpperYearLimit if let Some(value) = next_value => {
                     config.upper_year_limit = *value;
                 }
-                CliOption::LoopLimit
-                    if i + 1 < length
-                        && let Some(CliOption::UIntValue(value)) = args.get(i + 1) =>
-                {
+                CliOption::LoopLimit if let Some(value) = next_value => {
                     config.loop_limit = Some(*value);
                 }
                 CliOption::ShowConfig => config.show_config = true,
