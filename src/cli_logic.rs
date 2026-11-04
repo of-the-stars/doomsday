@@ -3,7 +3,7 @@ use rand::prelude::*;
 use std::{
     fmt,
     io::{self, prelude::*},
-    time,
+    str, time,
 };
 
 use crate::{
@@ -12,19 +12,25 @@ use crate::{
 };
 
 #[derive(Debug)]
-enum CliOption {
+/// Represents the cli options available to configure the game
+pub(crate) enum CliOption {
+    /// The lower limit, inclusive, for the years genereated
     LowerYearLimit,
+    /// The upper limit, inclusive, for the years genereated
     UpperYearLimit,
+    /// The number of times the loop goes through
     LoopLimit,
+    /// Whether or not to print the configuration at the start of the game
     ShowConfig,
+    /// A wrapper around [`u16`] values for the limit variants
     UIntValue(u16),
 }
 
-impl TryFrom<&str> for CliOption {
-    type Error = CalError;
+impl str::FromStr for CliOption {
+    type Err = CalError;
 
-    fn try_from(value: &str) -> std::prelude::v1::Result<Self, Self::Error> {
-        match value {
+    fn from_str(s: &str) -> std::prelude::v1::Result<Self, Self::Err> {
+        match s {
             "--show-config" => Ok(Self::ShowConfig),
             "--loop-limit" => Ok(Self::LoopLimit),
             "--upper-year-limit" => Ok(Self::UpperYearLimit),
@@ -46,7 +52,9 @@ pub struct GameConfig {
 }
 
 impl GameConfig {
-    pub fn new(args: &[String]) -> Result<Self> {
+    /// Takes in a reference to a collection of [`String`]s, meant to be std::env::args() collected
+    /// into a [`Vec<String>`], and parses them into a [`GameConfig`] configuration struct
+    pub fn new(args: &[String]) -> Self {
         let mut config = Self {
             loop_limit: None,
             show_config: false,
@@ -56,7 +64,7 @@ impl GameConfig {
 
         let args: Vec<CliOption> = args
             .iter()
-            .filter_map(|s| s.as_str().try_into().ok())
+            .filter_map(|s| s.as_str().parse().ok())
             .collect();
 
         let next_item = |index| {
@@ -85,7 +93,7 @@ impl GameConfig {
             }
         }
 
-        Ok(config)
+        config
     }
 }
 
