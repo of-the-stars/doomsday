@@ -59,11 +59,7 @@ impl DateStamp {
             .day_of_the_year
             .get_difference_from_doomsday(&self.year);
 
-        let mut code = doomsday_code + diff;
-
-        while code < 0 {
-            code += 7;
-        }
+        let code = doomsday_code + diff;
 
         let code: u8 = code
             .rem_euclid(7)
